@@ -1,5 +1,4 @@
-#git remote add origin https://github.com/clkz/live-demo.git
-# git push -u origin master
+# git remote add origin https://github.com/clkz/live-demo.git
 
-# clark-livedemo
 > Live DEMO.
++ https://clkz.github.io/live-demo/src/app/index.html 
