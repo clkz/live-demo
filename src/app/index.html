@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Hello</title>
+    <style>
+        [ng-cloak],
+        .ng-cloak {
+            display: none;
+        }
+    </style>
 </head>
 
-<body ng-controller="mainCtrl" class="ng-cloak">
+<body ng-controller="mainCtrl" ng-cloak>
     <ul>
         <li ng-repeat="member in model.members">
             {{member.name}}
