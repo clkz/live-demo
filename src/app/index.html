@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="members">
 
 <head>
     <meta charset="UTF-8">
@@ -8,9 +8,14 @@
     <title>Hello</title>
 </head>
 
-<body>
-    Welcome to Clark's Profiling
+<body ng-controller="mainCtrl">
+    <ul>
+        <li ng-repeat="member in model.members">
+            {{member.name}}
+        </li>
+    </ul>
 
+    <script src="../assets/angular.min.js"></script>
     <script src="../scripts/app.js"></script>
 </body>
 
