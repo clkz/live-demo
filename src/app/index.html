@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Hello</title>
     <style>
@@ -11,15 +11,75 @@
         .ng-cloak {
             display: none;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 50px;
+        }
+
+        table th {
+            border-bottom: 1px solid salmon;
+        }
+
+        table td {
+            text-align: center;
+        }
+
+        .btn-small {
+            font-size: 12px;
+            background: #fff;
+            border: 1px solid salmon;
+            color: #666;
+            padding: 2px;
+            margin: 2px;
+        }
     </style>
 </head>
 
-<body ng-controller="mainCtrl" ng-cloak>
-    <ul>
-        <li ng-repeat="member in model.members">
-            {{member.name}}
-        </li>
-    </ul>
+<body ng-controller="mainCtrl">
+    <div ng-cloak>
+        <div><label>系统时间：{{model.date|date:'yyyy年M月d日'}}</label></div>
+        <div><label>选择时间: <input type="date" ng-model="formModel.currentDate"></label></div>
+        <hr/>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>编号</th>
+                        <th>姓名</th>
+                        <th>上级</th>
+                        <th>缴纳</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="member in model.members">
+                        <td>
+                            {{$index+1}}
+                        </td>
+                        <td>
+                            {{member.name}}
+                        </td>
+                        <td>
+                            {{member.parent||'系统'}}
+                        </td>
+                        <td>
+                            {{(member.amount||0)|currency:'￥'}}
+                        </td>
+                        <td style="max-width:100px">
+                            <div>
+                                <button class="btn-small">增加下级</button>
+                                <button class="btn-small">查看收益</button>
+                                <button class="btn-small">查看分布</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <script src="../assets/angular.min.js"></script>
     <script src="../scripts/app.js"></script>
 </body>
