@@ -8,13 +8,12 @@
     <title>Hello</title>
 </head>
 
-<body ng-controller="mainCtrl">
+<body ng-controller="mainCtrl" class="ng-cloak">
     <ul>
         <li ng-repeat="member in model.members">
             {{member.name}}
         </li>
     </ul>
-
     <script src="../assets/angular.min.js"></script>
     <script src="../scripts/app.js"></script>
 </body>
