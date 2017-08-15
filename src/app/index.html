@@ -77,6 +77,7 @@
     <div ng-cloak>
         <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
         <div><label>选择时间：<input type="date" ng-model="formModel.currentDate"></label></div>
+        <div><label>当天全球业绩：<input type="text" ng-model="model.performance"></label></div>
         <hr/>
 
         <div>
@@ -121,7 +122,7 @@
 
     <div ng-cloak class="modal" ng-show="vars.showAddModal">
         <div class="overlay"></div>
-        <div class="modal-container">
+        <div class="modal-container" style="min-height:300px;min-width:300px;">
             <form>
                 <button class="btn-small" ng-click="addForm.addNewRow()">继续增加</button>
                 <div class="row" ng-repeat="newMember in addForm.rows">
@@ -138,7 +139,11 @@
 
     <div ng-cloak class="modal" ng-show="vars.showIncomeModal">
         <div class="overlay"></div>
-        <div class="modal-container">
+        <div class="modal-container" style="min-height:300px;min-width:300px;">
+            <div>
+                <button class="btn-small" ng-click="settlement()">结算</button>
+            </div>
+
             <div ng-repeat="incomeItem in model.incomeData">
                 <label>{{incomeItem.name}}:{{incomeItem.amount|number}}</label>
                 <span ng-if="!!incomeItem.freezed">（冻结）</span>
