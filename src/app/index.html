@@ -33,6 +33,7 @@
             border: 1px solid salmon;
             color: #666;
             padding: 2px;
+            margin-bottom: 2px;
         }
 
         .overlay {
@@ -75,7 +76,7 @@
 <body ng-controller="mainCtrl">
     <div ng-cloak>
         <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
-        <div><label>选择时间: <input type="date" ng-model="formModel.currentDate"></label></div>
+        <div><label>选择时间：<input type="date" ng-model="formModel.currentDate"></label></div>
         <hr/>
 
         <div>
@@ -107,7 +108,7 @@
 
                         <td style="max-width:100px;text-align:left;">
                             <div>
-                                <button class="btn-small" ng-click="showAddModal(member)">推荐人</button>
+                                <button class="btn-small" ng-click="showAddModal(member)">推荐会员</button>
                                 <button class="btn-small" ng-click="showIncomeModal(member)">查看收益</button>
                                 <button class="btn-small">查看分布</button>
                             </div>
