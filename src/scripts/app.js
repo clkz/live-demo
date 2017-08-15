@@ -164,7 +164,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     for (var key in config) {
                         if (typeof config[key] !== 'function') {
                             var levelItem = config[key];
-                            if (levelItem.layers && levelItem.layers.indexOf(level) >= 0) {
+                            if (levelItem.layers && levelItem.layers.indexOf(level - 0) >= 0) {
                                 return levelItem.rate;
                             }
                         }
@@ -175,11 +175,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             var allLayers = this.loop(nodeItem.key).layers, total = 0;
             for (var key in allLayers) {
-                var cfg = config.getRate(key), members = allLayers[key], amount = 0;
+                var rateVal = config.getRate(key), members = allLayers[key], amount = 0;
                 for (var i = 0, ii = members.length; i < ii; i++) {
                     amount += members[i].amount
                 }
-                amount = Math.round(amount * cfg.rate);
+                amount = Math.round(amount * rateVal);
                 total += amount;
             }
             return {
