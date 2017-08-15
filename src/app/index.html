@@ -46,7 +46,7 @@
             overflow: hidden;
         }
 
-        .modal-body {
+        .modal-container {
             position: absolute;
             width: auto;
             height: auto;
@@ -57,6 +57,18 @@
             padding: 5px;
             border-radius: 3px;
         }
+
+        .row {
+            display: flex;
+            margin: 10px 0;
+        }
+
+        .modal-footer {
+            line-height: 30px;
+            text-align: center;
+            background-color: #fff;
+            bottom: 0;
+        }
     </style>
 </head>
 
@@ -65,13 +77,15 @@
         <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
         <div><label>选择时间: <input type="date" ng-model="formModel.currentDate"></label></div>
         <hr/>
+
         <div>
+            <label>公司总收益：{{model.total|currency:'￥'}}</label>
             <table>
                 <thead>
                     <tr>
-                        <th>编号</th>
                         <th>姓名</th>
                         <th>上级</th>
+                        <th>上级节点</th>
                         <th>缴纳</th>
                         <th>操作</th>
                     </tr>
@@ -79,21 +93,22 @@
                 <tbody>
                     <tr ng-repeat="member in model.members">
                         <td>
-                            {{$index+1}}
-                        </td>
-                        <td>
                             {{member.name}}
                         </td>
                         <td>
                             {{member.parent||'系统'}}
                         </td>
                         <td>
+                            {{member.parentNodeName||'系统'}}
+                        </td>
+                        <td>
                             {{(member.amount||0)|currency:'￥'}}
                         </td>
+
                         <td style="max-width:100px;text-align:left;">
                             <div>
-                                <button class="btn-small" ng-click="showAddModal(member)">增加下级</button>
-                                <button class="btn-small">查看收益</button>
+                                <button class="btn-small" ng-click="showAddModal(member)">推荐人</button>
+                                <button class="btn-small" ng-click="showIncomeModal(member)">查看收益</button>
                                 <button class="btn-small">查看分布</button>
                             </div>
                         </td>
@@ -103,17 +118,33 @@
         </div>
     </div>
 
-    <div class="modal" ng-show="vars.showAddModal">
+    <div ng-cloak class="modal" ng-show="vars.showAddModal">
         <div class="overlay"></div>
-        <div class="modal-body">
+        <div class="modal-container">
             <form>
-                <button ng-click="addForm.addNewRow()">继续增加</button>
+                <button class="btn-small" ng-click="addForm.addNewRow()">继续增加</button>
                 <div class="row" ng-repeat="newMember in addForm.rows">
                     <input type="text" style="width:70%" ng-model="addForm.members[newMember.key]" placeholder="姓名">
-                    <input type="text" style="width:20%" ng-model="formModel.amounts[newMember.key]" placeholder="金额">
+                    <input type="text" style="width:20%" ng-model="addForm.amounts[newMember.key]" placeholder="金额">
                 </div>
-                <button ng-click="addForm.apply()">确定增加</button>
             </form>
+            <div class="modal-footer">
+                <button class="btn-small" ng-click="addForm.apply()">确定增加</button>
+                <button class="btn-small" ng-click="modal.close('showAddModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div ng-cloak class="modal" ng-show="vars.showIncomeModal">
+        <div class="overlay"></div>
+        <div class="modal-container">
+            <div ng-repeat="incomeItem in model.incomeData">
+                <label>{{incomeItem.name}}:{{incomeItem.amount|number}}</label>
+                <span ng-if="!!incomeItem.freezed">（冻结）</span>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" ng-click="modal.close('showIncomeModal')">关闭</button>
+            </div>
         </div>
     </div>
 
