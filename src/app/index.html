@@ -24,6 +24,7 @@
 
         table td {
             text-align: center;
+            padding: 5px 0;
         }
 
         .btn-small {
@@ -32,14 +33,36 @@
             border: 1px solid salmon;
             color: #666;
             padding: 2px;
-            margin: 2px;
+        }
+
+        .overlay {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+            opacity: .8;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+
+        .modal-body {
+            position: absolute;
+            width: auto;
+            height: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 5px;
+            border-radius: 3px;
         }
     </style>
 </head>
 
 <body ng-controller="mainCtrl">
     <div ng-cloak>
-        <div><label>系统时间：{{model.date|date:'yyyy年M月d日'}}</label></div>
+        <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
         <div><label>选择时间: <input type="date" ng-model="formModel.currentDate"></label></div>
         <hr/>
         <div>
@@ -67,9 +90,9 @@
                         <td>
                             {{(member.amount||0)|currency:'￥'}}
                         </td>
-                        <td style="max-width:100px">
+                        <td style="max-width:100px;text-align:left;">
                             <div>
-                                <button class="btn-small">增加下级</button>
+                                <button class="btn-small" ng-click="showAddModal(member)">增加下级</button>
                                 <button class="btn-small">查看收益</button>
                                 <button class="btn-small">查看分布</button>
                             </div>
@@ -77,6 +100,20 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <div class="modal" ng-show="vars.showAddModal">
+        <div class="overlay"></div>
+        <div class="modal-body">
+            <form>
+                <button ng-click="addForm.addNewRow()">继续增加</button>
+                <div class="row" ng-repeat="newMember in addForm.rows">
+                    <input type="text" style="width:70%" ng-model="addForm.members[newMember.key]" placeholder="姓名">
+                    <input type="text" style="width:20%" ng-model="formModel.amounts[newMember.key]" placeholder="金额">
+                </div>
+                <button ng-click="addForm.apply()">确定增加</button>
+            </form>
         </div>
     </div>
 
