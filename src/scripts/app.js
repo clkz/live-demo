@@ -217,7 +217,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     }
                 }
             }
-            
+
             var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
             var total = 0, releationList = $filter('filter')(vars.releationList, function (item) {
                 return item.parentNodeKey = nodeItem.key;
@@ -248,49 +248,6 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 members = this.findChilds(childs[i].key, members);
             }
             return members;
-        },
-
-
-        findAllLayers: function (key, index, layers) {
-            if (!index) index = 1;
-            if (!layers) layers = [];
-            var childs = $filter('filter')(model.members, function (item) { return item.parentNodeKey === key });
-            if (!childs.length) return layers;
-
-            layers.push({
-                number: index++,
-                members: childs
-            });
-
-            for (var i = 0, ii = childs.length; i < ii; i++) {
-                layers = this.findAllLayers(childs[i].key, index, layers)
-            }
-            return layers;
-        },
-
-        loop: function (key, cache, index) {
-            if (!cache) cache = { max: 0, layers: {} };
-            var childs = $filter('filter')(model.members, function (item) { return item.parentKey === key });
-            if (!cache.layers[cache.max]) cache.layers[cache.max] = [];
-            if (!childs.length || cache.max >= 19) { return cache; }
-            for (var i = 0, ii = childs.length; i < ii; i++) {
-                cache.layers[cache.max].push(childs[i]);
-                this.loop(childs[i].key, cache);
-            }
-        },
-
-        groupIncome: function (member) {
-            // var list = this.income(member.key), incomeData = [], cache = {};
-            // for (var i = 0, ii = list.length; i < ii; i++) {
-            //     var val = cache[list[i].type] || 0;
-            //     cache[list[i].type] = val + list[i].amount;
-            // }
-            // for (var cacheKey in cache) {
-            //     var newMemberItem = angular.copy($filter('filter')(list, { type: cacheKey })[0]);
-            //     newMemberItem.amount = cache[cacheKey];
-            //     incomeData.push(newMemberItem)
-            // }
-            // return incomeData;
         }
     }
 
