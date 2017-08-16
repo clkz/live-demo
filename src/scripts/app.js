@@ -167,16 +167,6 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     return item.parentNodeKey === memberKey && item.isDirect === true
                 });
         },
-        total: function () {
-            // model.total += newMember.amount;
-
-
-
-
-        },
-        income: function (memberKey) {
-
-        },
         //积分
         points: function (memberKey) {
             var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
@@ -227,17 +217,20 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     }
                 }
             }
+            
             var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
+            var total = 0, releationList = $filter('filter')(vars.releationList, function (item) {
+                return item.parentNodeKey = nodeItem.key;
+            });
 
-            var allLayers = this.findChilds(nodeItem.key), total = 0;
-            for (var key in allLayers) {
-                var rateVal = config.getRate(key), members = allLayers[key], amount = 0;
-                for (var i = 0, ii = members.length; i < ii; i++) {
-                    amount += members[i].amount
+            angular.forEach(releationList, function (relationItem) {
+                var rateVal = config.getRate(relationItem.layerNumber),
+                    member = $filter('filter')(model.members, function (item) { return item.key === relationItem.nodeKey })[0];
+                if (member && rateVal) {
+                    total += Math.round(member.amount * rateVal)
                 }
-                amount = Math.round(amount * rateVal);
-                total += amount;
-            }
+            });
+
             return {
                 type: 'InPoint',
                 name: '见点奖',
