@@ -47,7 +47,12 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var points = $scope.query.points(vars.currentMember.key);
         var recommend = $scope.query.recommend(vars.currentMember.key);
         var inPoint = $scope.query.inPoint(vars.currentMember.key);
-        var rows = [points, recommend, inPoint];
+        var dividends = $scope.query.dividends(vars.currentMember.key);
+        var guide = $scope.query.guide(vars.currentMember.parentKey);
+        var repeat = $scope.query.repeat(vars.currentMember.key);
+
+        var rows = [points, recommend, inPoint, dividends, guide, repeat];
+
         model.incomeData = rows;
     }
 
@@ -219,18 +224,20 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             }
 
             var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
-            var total = 0, releationList = $filter('filter')(vars.releationList, function (item) {
-                return item.parentNodeKey = nodeItem.key;
-            });
 
-            angular.forEach(releationList, function (relationItem) {
-                var rateVal = config.getRate(relationItem.layerNumber),
-                    member = $filter('filter')(model.members, function (item) { return item.key === relationItem.nodeKey })[0];
-                if (member && rateVal) {
-                    total += Math.round(member.amount * rateVal)
-                }
-            });
+            if (nodeItem) {
+                var total = 0, releationList = $filter('filter')(vars.releationList, function (item) {
+                    return item.parentNodeKey = nodeItem.key;
+                });
 
+                angular.forEach(releationList, function (relationItem) {
+                    var rateVal = config.getRate(relationItem.layerNumber),
+                        member = $filter('filter')(model.members, function (item) { return item.key === relationItem.nodeKey })[0];
+                    if (member && rateVal) {
+                        total += Math.round(member.amount * rateVal)
+                    }
+                });
+            }
             return {
                 type: 'InPoint',
                 name: '见点奖',
@@ -238,7 +245,42 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 amount: total
             }
         },
-
+        //加权分红
+        dividends: function (memberKey) {
+            var dVal = Math.round((model.dayOfTotal * 0.2) / model.members.length);
+            return {
+                type: 'Dividends',
+                name: '加权分红',
+                freezed: false,
+                amount: dVal
+            }
+        },
+        //指导奖
+        guide: function (memberKey) {
+            var parent = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0],
+                parentInPoint = 0,
+                parentDividends = 0;
+            if (parent) {
+                //TODO：追朔5代还未做
+                parentInPoint = $scope.query.inPoint(memberKey).amount;
+                parentDividends = $scope.query.dividends(memberKey).amount;
+            }
+            return {
+                type: 'Guide',
+                name: '辅导奖',
+                freezed: false,
+                amount: (parentInPoint + parentDividends) * 0.1
+            }
+        },
+        //重复消费
+        repeat: function (memberKey) {
+            return {
+                type: 'Repeat',
+                name: '复消提成',
+                freezed: false,
+                amount: 0
+            }
+        },
         findChilds: function (key, members) {
             if (!members) members = [];
             var childs = $filter('filter')(model.members, function (item) { return item.parentNodeKey === key });
