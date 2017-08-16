@@ -6,17 +6,19 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         showAddModal: false,
         showIncomeModal: false,
         currentMember: null,
-        incomeList: []
+        incomeList: [],
+        releationList: [],
     }
 
 
     var model = $scope.model = {
         performance: 0,
         total: 0,
+        dayOfTotal: 0,
         members: [{ key: 'M00001', name: '会员1' }, { key: 'M00002', name: '会员2' }, { key: 'M00003', name: '会员3' }],
         incomeData: []
     }
-    $scope.formModel = {
+    var formModel = $scope.formModel = {
         currentDate: new Date()
     }
 
@@ -59,42 +61,86 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             this.rows.push({ key: 'm' + (childs.length + 1), index: childs.length + 1 });
         },
         apply: function () {
-            var newMembers = [];
+            var newMembers = [],
+                parentKey = vars.currentMember.key,
+                newItem = {};
+
             for (var i = 0, ii = this.rows.length; i < ii; i++) {
                 var formItem = this.rows[i],
                     currentKey = formItem.key,
                     recentNode = this.findRecentNode(vars.currentMember);
 
-                var newItem = {
-                    key: vars.currentMember.key + currentKey,
+                newItem = {
+                    key: parentKey + currentKey,
                     name: vars.currentMember.name + '-' + (this.members[formItem.key] || formItem.index),
                     parent: vars.currentMember.name,
-                    parentKey: vars.currentMember.key,
+                    parentKey: parentKey,
                     parentNodeKey: recentNode.key,
                     parentNodeName: recentNode.name,
                     amount: (this.amounts[formItem.key] - 0) || 0,
-                    date: new Date()
+                    createDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
                 };
                 newMembers.push(newItem);
-                $scope.query.total(newItem);
             }
             model.members = model.members.concat(newMembers);
+
+            for (var j = 0, jj = newMembers.length; j < jj; j++) {
+                $scope.storage.saveRealtions(newMembers[j]);
+            }
+
+            $scope.storage.total();
             vars.showAddModal = false;
         },
         findRecentNode: function (member) {
-            var childs = $filter('filter')(model.members, function (item) {
-                return item.parentKey === member.key || item.parentNodeKey === member.key
-            });
-            if (childs.length < 3) return member;
+            var directNodeList = $scope.query.directNodeList(member.key);
+            if (directNodeList.length < 3) return member;
 
-            for (var i = 0, ii = childs.length; i < ii; i++) {
-                var childNodes = $filter('filter')(model.members, function (item) { return item.parentNodeKey === childs[i].key });
-                if (childNodes.length < 3) return childs[i];
+            var allChilds = $scope.query.findChilds(member.key);
+            for (var i = 0, ii = allChilds.length; i < ii; i++) {
+                var childNodes = $scope.query.directNodeList(allChilds[i].key);
+                if (childNodes.length < 3) return allChilds[i];
             }
         }
     }
 
     $scope.storage = {
+        total: function () {
+            var total = 0,
+                dayOfTotal = 0,
+                currentDate = $filter('date')($scope.formModel.currentDate, 'yyyy-MM-dd');
+
+            angular.forEach(model.members, function (item) {
+                total += (item.amount || 0);
+            });
+
+            var todayMembers = $filter('filter')(model.members,
+                function (item) { return item.createDate === currentDate });
+
+            angular.forEach(todayMembers, function (item) {
+                dayOfTotal += (item.amount || 0);
+            });
+
+            model.total = total;
+            model.dayOfTotal = dayOfTotal;
+        },
+        loop: function (memberKey, callback) {
+            var childs = $filter('filter')(model.members, function (item) { return item.key === memberKey });
+            if (!childs.length) return;
+            callback && callback(childs[0]);
+            this.loop(childs[0].parentNodeKey, callback);
+        },
+
+        saveRealtions: function (member) {
+            var index = 1;
+            this.loop(member.parentNodeKey, function (item) {
+                vars.releationList.push({
+                    nodeKey: member.key,
+                    parentNodeKey: item.key,
+                    layerNumber: index++,
+                    isDirect: member.parentKey === item.key
+                })
+            })
+        },
         saveIncome: function (newMembers) {
             // vars.incomeList.push({
             //     key: newMembers.key,
@@ -115,8 +161,18 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
     }
 
     $scope.query = {
-        total: function (newMember) {
-            model.total += newMember.amount;
+        directNodeList: function (memberKey) {
+            return $filter('filter')(vars.releationList,
+                function (item) {
+                    return item.parentNodeKey === memberKey && item.isDirect === true
+                });
+        },
+        total: function () {
+            // model.total += newMember.amount;
+
+
+
+
         },
         income: function (memberKey) {
 
@@ -173,7 +229,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             }
             var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
 
-            var allLayers = this.loop(nodeItem.key).layers, total = 0;
+            var allLayers = this.findChilds(nodeItem.key), total = 0;
             for (var key in allLayers) {
                 var rateVal = config.getRate(key), members = allLayers[key], amount = 0;
                 for (var i = 0, ii = members.length; i < ii; i++) {
@@ -190,15 +246,43 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             }
         },
 
-        loop: function (key, cache) {
+        findChilds: function (key, members) {
+            if (!members) members = [];
+            var childs = $filter('filter')(model.members, function (item) { return item.parentNodeKey === key });
+            if (!childs.length) return members;
+            members = members.concat(childs);
+            for (var i = 0, ii = childs.length; i < ii; i++) {
+                members = this.findChilds(childs[i].key, members);
+            }
+            return members;
+        },
+
+
+        findAllLayers: function (key, index, layers) {
+            if (!index) index = 1;
+            if (!layers) layers = [];
+            var childs = $filter('filter')(model.members, function (item) { return item.parentNodeKey === key });
+            if (!childs.length) return layers;
+
+            layers.push({
+                number: index++,
+                members: childs
+            });
+
+            for (var i = 0, ii = childs.length; i < ii; i++) {
+                layers = this.findAllLayers(childs[i].key, index, layers)
+            }
+            return layers;
+        },
+
+        loop: function (key, cache, index) {
             if (!cache) cache = { max: 0, layers: {} };
             var childs = $filter('filter')(model.members, function (item) { return item.parentKey === key });
-            cache.max++;
             if (!cache.layers[cache.max]) cache.layers[cache.max] = [];
-            if (!childs.length || cache.max <= 19) { return cache; }
+            if (!childs.length || cache.max >= 19) { return cache; }
             for (var i = 0, ii = childs.length; i < ii; i++) {
                 cache.layers[cache.max].push(childs[i]);
-                return this.loop(childs[i].key, cache);
+                this.loop(childs[i].key, cache);
             }
         },
 

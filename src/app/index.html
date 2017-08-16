@@ -77,11 +77,11 @@
     <div ng-cloak>
         <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
         <div><label>选择时间：<input type="date" ng-model="formModel.currentDate"></label></div>
-        <div><label>当天全球业绩：<input type="text" ng-model="model.performance"></label></div>
         <hr/>
 
         <div>
             <label>公司总收益：{{model.total|currency:'￥'}}</label>
+            <label>，当天收益：{{model.dayOfTotal|currency:'￥'}}</label>
             <table>
                 <thead>
                     <tr>
