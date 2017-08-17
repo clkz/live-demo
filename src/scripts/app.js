@@ -50,8 +50,9 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var dividends = $scope.query.dividends(vars.currentMember.key);
         var guide = $scope.query.guide(vars.currentMember.key);
         var repeat = $scope.query.repeat(vars.currentMember.key);
+        var total = $scope.query.total(vars.currentMember.key);
 
-        var rows = [maxIncome, recommend, inPoint, dividends, guide, repeat];
+        var rows = [maxIncome, recommend, inPoint, dividends, guide, repeat].concat(total);
 
         model.incomeData = rows;
     }
@@ -144,21 +145,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             })
         },
         saveIncome: function (newMembers) {
-            // vars.incomeList.push({
-            //     key: newMembers.key,
-            //     type: 'Points',
-            //     name: '积分',
-            //     freezed: true,
-            //     amount: newMembers.amount * 2
-            // });
 
-            // vars.incomeList.push({
-            //     key: newMembers.parentKey,
-            //     type: 'Recommend',
-            //     name: '直推奖',
-            //     freezed: false,
-            //     amount: newMembers.amount * 0.2
-            // });
         }
     }
 
@@ -379,7 +366,42 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 name: '复消提成',
                 freezed: false,
                 amount: 0
-            }
+            };
+        },
+        total: function (memberKey) {
+            var recommendVal = this.recommend(memberKey).amount;
+            var inPointVal = this.inPoint(memberKey).amount;
+            var dividendsVal = this.dividends(memberKey).amount;
+            var guideVal = this.guide(memberKey).amount;
+            var repeatVal = this.repeat(memberKey).amount;
+
+            var maxIncomeVal = this.maxIncome(memberKey).amount;
+
+            var totalVal = recommendVal + inPointVal + inPointVal + guideVal + repeatVal;
+
+            var enabledVal = totalVal > maxIncomeVal ? maxIncomeVal : totalVal;
+
+            return [
+                {
+                    type: 'Total',
+                    name: '收益总额',
+                    freezed: false,
+                    amount: totalVal
+                },
+                {
+                    type: 'Lock',
+                    name: '冻结资金',
+                    freezed: false,
+                    amount: totalVal > maxIncomeVal ? totalVal - maxIncomeVal : 0
+                },
+                {
+                    type: 'Enabled',
+                    name: '可用资金(手续费：6%)',
+                    freezed: false,
+                    amount: enabledVal - Math.round(enabledVal * 0.06)
+                }
+            ];
+
         },
         findChilds: function (key, members) {
             if (!members) members = [];
