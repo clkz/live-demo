@@ -8,7 +8,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         currentMember: null,
         incomeList: [],
         releationList: [],
-    }
+        outlayList: []
+    };
 
 
     var model = $scope.model = {
@@ -28,12 +29,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         }
     }
 
-    $scope.showAddModal = function (member) {
+    $scope.showOutLayModal = function (member) {
         vars.currentMember = member;
+        $scope.addForm.amount = '';
 
-        $scope.addForm.rows = [];
-        $scope.addForm.addNewRow(member);
-        vars.showAddModal = !vars.showAddModal;
+        vars.showOutlayModal = !vars.showOutlayModal;
     }
 
     $scope.showIncomeModal = function (member) {
@@ -44,57 +44,54 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
     }
 
     $scope.settlement = function () {
-        var points = $scope.query.points(vars.currentMember.key);
+        var maxIncome = $scope.query.maxIncome(vars.currentMember.key);
         var recommend = $scope.query.recommend(vars.currentMember.key);
         var inPoint = $scope.query.inPoint(vars.currentMember.key);
         var dividends = $scope.query.dividends(vars.currentMember.key);
-        var guide = $scope.query.guide(vars.currentMember.parentKey);
+        var guide = $scope.query.guide(vars.currentMember.key);
         var repeat = $scope.query.repeat(vars.currentMember.key);
 
-        var rows = [points, recommend, inPoint, dividends, guide, repeat];
+        var rows = [maxIncome, recommend, inPoint, dividends, guide, repeat];
 
         model.incomeData = rows;
     }
 
 
     $scope.addForm = {
-        rows: [],
-        members: {},
-        amounts: {},
-        addNewRow: function (member) {
-            var childs = $filter('filter')(model.members, function (item) { return item.parentKey === member.key });
-            this.rows.push({ key: 'm' + (childs.length + 1), index: childs.length + 1 });
-        },
-        apply: function () {
-            var newMembers = [],
-                parentKey = vars.currentMember.key,
-                newItem = {};
+        amount: '',
+        apply: function (parent) {
+            var parentChilds = $filter('filter')(model.members,
+                function (item) {
+                    return item.parentKey === parent.key
+                }),
+                newMembers = [],
+                parentKey = parent.key,
+                currentKey = 'm' + (parentChilds.length + 1),
+                recentNode = this.findRecentNode(parent);
 
-            for (var i = 0, ii = this.rows.length; i < ii; i++) {
-                var formItem = this.rows[i],
-                    currentKey = formItem.key,
-                    recentNode = this.findRecentNode(vars.currentMember);
+            newMembers = [{
+                key: parentKey + currentKey,
+                name: parent.name + '-' + (parentChilds.length + 1),
+                parentKey: parentKey,
+                parentName: parent.name,
+                parentNodeKey: recentNode.key,
+                parentNodeName: recentNode.name,
+                createDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
+            }];
 
-                newItem = {
-                    key: parentKey + currentKey,
-                    name: vars.currentMember.name + '-' + (this.members[formItem.key] || formItem.index),
-                    parent: vars.currentMember.name,
-                    parentKey: parentKey,
-                    parentNodeKey: recentNode.key,
-                    parentNodeName: recentNode.name,
-                    amount: (this.amounts[formItem.key] - 0) || 0,
-                    createDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
-                };
-                newMembers.push(newItem);
-            }
             model.members = model.members.concat(newMembers);
 
-            for (var j = 0, jj = newMembers.length; j < jj; j++) {
-                $scope.storage.saveRealtions(newMembers[j]);
-            }
-
+            $scope.storage.saveRealtions(newMembers[0]);
+        },
+        outlay: function () {
+            vars.outlayList.push({
+                memberKey: vars.currentMember.key,
+                amount: this.amount - 0,
+                inDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
+            });
             $scope.storage.total();
-            vars.showAddModal = false;
+
+            vars.showOutlayModal = false;
         },
         findRecentNode: function (member) {
             var directNodeList = $scope.query.directNodeList(member.key);
@@ -114,12 +111,12 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 dayOfTotal = 0,
                 currentDate = $filter('date')($scope.formModel.currentDate, 'yyyy-MM-dd');
 
-            angular.forEach(model.members, function (item) {
+            angular.forEach(vars.outlayList, function (item) {
                 total += (item.amount || 0);
             });
 
-            var todayMembers = $filter('filter')(model.members,
-                function (item) { return item.createDate === currentDate });
+            var todayMembers = $filter('filter')(vars.outlayList,
+                function (item) { return item.inDate === currentDate });
 
             angular.forEach(todayMembers, function (item) {
                 dayOfTotal += (item.amount || 0);
@@ -172,32 +169,110 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     return item.parentNodeKey === memberKey && item.isDirect === true
                 });
         },
-        //积分
-        points: function (memberKey) {
-            var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
+        nodeIncome: function (memberKey) {
+            var recommendVal = 0; //this.recommend(memberKey);
+            var inPointVal = 0;// this.inPoint(memberKey);
+            var dividendsVal = 0;//this.dividends(memberKey);
+            var guideVal = 0;// this.guide(memberKey);//TODO:暂时无法加入指导奖的计算，但需要算在总收入里面
+
+            return recommendVal + inPointVal + dividendsVal + guideVal;
+        },
+        //TODO:性能大户3
+        nodeOutlay: function (memberKey) {
+            var selfItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
+            var selfAmount = 0, selfOutLays = $filter('filter')(vars.outlayList,
+                function (item) { return item.memberKey === memberKey });
+
+            angular.forEach(selfOutLays, function (outlayItem) {
+                selfAmount += outlayItem.amount;
+            });
+            return selfAmount;
+        },
+        //TODO:性能大户1
+        paiedMembers: function (memberKey) {
+            var childs = $filter('filter')(model.members, function (item) {
+                return item.parentKey === memberKey;
+            });
+
+            return $filter('filter')(childs, function (item) {
+                var childOutlays = $filter('filter')(vars.outlayList, function (oitem) {
+                    return oitem.memberKey === item.key;
+                });
+                return item.parentKey === memberKey && !!childOutlays.length
+            });
+        },
+        //TODO:性能大户2
+        childOutlays: function (memberKey) {
+            var childs = $filter('filter')(model.members, function (item) {
+                return item.parentKey === memberKey;
+            });
+
+            return $filter('filter')(vars.outlayList, function (oitem) {
+                return !!$filter('filter')(childs, function (citem) {
+                    return citem.key === oitem.memberKey;
+                }).length;
+            });
+        },
+        //TODO:性能大户
+        staticNodeList: function () {
+            var self = this,
+                currentDate = $filter('date')(formModel.currentDate, 'yyyy-MM-dd');
+            var result = [];
+            return $filter('filter')(model.members, function (memberItem) {
+                var childNodes = self.paiedMembers(memberItem.key);
+                return !childNodes.length;
+            });
+        },
+        //最大收益限制
+        maxIncome: function (memberKey) {
+            var selfAmount = this.nodeOutlay(memberKey);
+            var outLaiedChilds = this.paiedMembers(memberKey);
+            var childOutlays = this.childOutlays(memberKey);
+            var total = 0;
+
+            if (!outLaiedChilds.length) {
+                total += selfAmount * 2;
+            }
+            else if (outLaiedChilds.length === 1) {
+                total += selfAmount * 3;
+            }
+            else if (outLaiedChilds.length === 2) {
+                total += selfAmount * 4;
+            }
+            else if (outLaiedChilds.length > 2) {
+                total += selfAmount * 5;
+            }
+
+            angular.forEach(childOutlays, function (item) {
+                total += item.amount;
+            });
+
             return {
-                type: 'Points',
-                name: '积分',
-                freezed: true,
-                amount: nodeItem.amount * 2
+                type: 'MaxIncome',
+                name: '收益上限',
+                freezed: false,
+                amount: total
             }
         },
         //直推
         recommend: function (memberKey) {
-            var childs = $filter('filter')(model.members, function (item) { return item.parentKey === memberKey }),
-                maxAmount = 0;
-            for (var i = 0, ii = childs.length; i < ii; i++) {
-                maxAmount = Math.max(maxAmount, childs[i].amount);
+            var total = 0;
+            var childOutlays = this.childOutlays(memberKey);
+
+            for (var i = 0, ii = childOutlays.length; i < ii; i++) {
+                total += (childOutlays[i].amount * 0.2);//20%
             }
+
             return {
                 type: 'Recommend',
                 name: '直推奖',
                 freezed: false,
-                amount: maxAmount * 0.2
+                amount: total
             }
         },
         //见点
         inPoint: function (memberKey) {
+            var self = this;
             var config = {
                 level1: {
                     layers: [1, 3, 5, 7],
@@ -222,22 +297,22 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     }
                 }
             }
-
-            var nodeItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
-
-            if (nodeItem) {
-                var total = 0, releationList = $filter('filter')(vars.releationList, function (item) {
-                    return item.parentNodeKey = nodeItem.key;
+            var selfAmount = self.nodeOutlay(memberKey);
+            var total = 0,
+                releationList = $filter('filter')(vars.releationList, function (item) {
+                    return item.parentNodeKey === memberKey;
                 });
 
-                angular.forEach(releationList, function (relationItem) {
-                    var rateVal = config.getRate(relationItem.layerNumber),
-                        member = $filter('filter')(model.members, function (item) { return item.key === relationItem.nodeKey })[0];
-                    if (member && rateVal) {
-                        total += Math.round(member.amount * rateVal)
-                    }
-                });
-            }
+            angular.forEach(releationList, function (relationItem) {
+                var rateVal = config.getRate(relationItem.layerNumber);
+                var childOutlayAmount = self.nodeOutlay(relationItem.nodeKey);
+                var endlessAmount = Math.min(selfAmount, childOutlayAmount);
+
+                if (rateVal) {
+                    total += Math.round(endlessAmount * rateVal)
+                }
+            });
+
             return {
                 type: 'InPoint',
                 name: '见点奖',
@@ -247,7 +322,14 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         },
         //加权分红
         dividends: function (memberKey) {
-            var dVal = Math.round((model.dayOfTotal * 0.2) / model.members.length);
+            var dVal = 0;
+            var staticNodes = this.staticNodeList();
+            angular.forEach(staticNodes, function (item) {
+                if (item.key === memberKey) {
+                    dVal = Math.round((model.dayOfTotal * 0.2) / staticNodes.length);
+                }
+            });
+
             return {
                 type: 'Dividends',
                 name: '加权分红',
@@ -257,19 +339,37 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         },
         //指导奖
         guide: function (memberKey) {
-            var parent = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0],
-                parentInPoint = 0,
-                parentDividends = 0;
-            if (parent) {
-                //TODO：追朔5代还未做
-                parentInPoint = $scope.query.inPoint(memberKey).amount;
-                parentDividends = $scope.query.dividends(memberKey).amount;
+            var selfOutlayAmount = this.nodeOutlay(memberKey);
+            var selfIncomeAmount = this.nodeIncome(memberKey);
+            var selfItem = $filter('filter')(model.members, function (item) { return item.key === memberKey })[0];
+
+            var parentCalculateAmount = 0;
+            if (selfIncomeAmount <= selfOutlayAmount * 0.05) {
+                var parent = $filter('filter')(model.members, function (item) { return item.key === selfItem.parentKey })[0];
+                if (parent) {
+                    parentCalculateAmount = this.inPoint(parent.key).amount + this.dividends(parent.key).amount;
+                    var counter = 5 - 1, parent = {};
+                    while (counter > 0 && !parentCalculateAmount) {
+                        if (parentCalculateAmount) {
+                            parent = $filter('filter')(model.members, function (item) { return item.key === parent.parentKey })[0];
+                            if (parent) {
+                                parentCalculateAmount = this.inPoint(parent.key).amount + this.dividends(parent.key).amount;
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        counter--;
+                    }
+                }
             }
+
             return {
                 type: 'Guide',
-                name: '辅导奖',
+                name: '辅导奖（互助金）',
                 freezed: false,
-                amount: (parentInPoint + parentDividends) * 0.1
+                amount: parentCalculateAmount * 0.1,
+                inDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
             }
         },
         //重复消费

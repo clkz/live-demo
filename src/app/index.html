@@ -88,7 +88,6 @@
                         <th>姓名</th>
                         <th>上级</th>
                         <th>上级节点</th>
-                        <th>缴纳</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -103,15 +102,11 @@
                         <td>
                             {{member.parentNodeName||'系统'}}
                         </td>
-                        <td>
-                            {{(member.amount||0)|currency:'￥'}}
-                        </td>
-
                         <td style="max-width:100px;text-align:left;">
                             <div>
-                                <button class="btn-small" ng-click="showAddModal(member)">推荐会员</button>
+                                <button class="btn-small" ng-click="showOutLayModal(member)">消费</button>
+                                <button class="btn-small" ng-click="addForm.apply(member)">推荐会员</button>
                                 <button class="btn-small" ng-click="showIncomeModal(member)">查看收益</button>
-                                <button class="btn-small">查看分布</button>
                             </div>
                         </td>
                     </tr>
@@ -120,19 +115,16 @@
         </div>
     </div>
 
-    <div ng-cloak class="modal" ng-show="vars.showAddModal">
+    <div ng-cloak class="modal" ng-show="vars.showOutlayModal">
         <div class="overlay"></div>
         <div class="modal-container" style="min-height:300px;min-width:300px;">
-            <form>
-                <button class="btn-small" ng-click="addForm.addNewRow()">继续增加</button>
-                <div class="row" ng-repeat="newMember in addForm.rows">
-                    <input type="text" style="width:70%" ng-model="addForm.members[newMember.key]" placeholder="姓名">
-                    <input type="text" style="width:20%" ng-model="addForm.amounts[newMember.key]" placeholder="金额">
-                </div>
+            <form style="text-align:center;">
+                <input type="text" style="width:80%;line-height:30px;padding:2px;border-radius:2px;border:1px solid #bbb;" ng-model="addForm.amount"
+                    placeholder="消费金额">
             </form>
             <div class="modal-footer">
-                <button class="btn-small" ng-click="addForm.apply()">确定增加</button>
-                <button class="btn-small" ng-click="modal.close('showAddModal')">关闭</button>
+                <button class="btn-small" ng-click="addForm.outlay()">确定消费</button>
+                <button class="btn-small" ng-click="modal.close('showOutlayModal')">关闭</button>
             </div>
         </div>
     </div>
@@ -143,7 +135,6 @@
             <div>
                 <button class="btn-small" ng-click="settlement()">结算</button>
             </div>
-
             <div ng-repeat="incomeItem in model.incomeData">
                 <label>{{incomeItem.name}}:{{incomeItem.amount|number}}</label>
                 <span ng-if="!!incomeItem.freezed">（冻结）</span>
