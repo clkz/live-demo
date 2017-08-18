@@ -70,6 +70,18 @@
             background-color: #fff;
             bottom: 0;
         }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        ul>li {
+            font-size: 12px;
+            text-align: left;
+            padding-left: 12px;
+        }
     </style>
 </head>
 
@@ -78,7 +90,9 @@
         <div><label>系统时间：{{vars.date|date:'yyyy年M月d日'}}</label></div>
         <div><label>选择时间：<input type="date" ng-model="formModel.currentDate"></label></div>
         <hr/>
-
+        <div>
+            <button class="btn-small" ng-click="settlementDividends()">结算加权分红</button>
+        </div>
         <div>
             <label>公司总收益：{{model.total|currency:'￥'}}</label>
             <label>，当天收益：{{model.dayOfTotal|currency:'￥'}}</label>
@@ -87,22 +101,29 @@
                     <tr>
                         <th>姓名</th>
                         <th>上级</th>
-                        <th>上级节点</th>
+                        <th>节点</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr ng-repeat="member in model.members">
-                        <td>
-                            {{member.name}}
+                        <td style="width:150px;text-align:left;">
+                            <div>{{member.name}}</div>
+                            <div style="text-align:left;" ng-if="member.outlays">
+                                <ul>
+                                    <li ng-repeat="outlayItem in member.outlays">
+                                        {{outlayItem.name}}：{{outlayItem.amount}}
+                                    </li>
+                                </ul>
+                            </div>
                         </td>
-                        <td>
+                        <td style="width:60px;">
                             {{member.parent||'系统'}}
                         </td>
-                        <td>
+                        <td style="width:60px;">
                             {{member.parentNodeName||'系统'}}
                         </td>
-                        <td style="max-width:100px;text-align:left;">
+                        <td style="max-width:120px;text-align:left;">
                             <div>
                                 <button class="btn-small" ng-click="showOutLayModal(member)">消费</button>
                                 <button class="btn-small" ng-click="addForm.apply(member)">推荐会员</button>
@@ -133,7 +154,7 @@
         <div class="overlay"></div>
         <div class="modal-container" style="min-height:300px;min-width:300px;">
             <div>
-                <button class="btn-small" ng-click="settlement()">结算</button>
+                <button class="btn-small" ng-click="settlementGuide()">结算辅导奖</button>
             </div>
             <span>
                 收益上限：{{model.maxIncome|number}}
