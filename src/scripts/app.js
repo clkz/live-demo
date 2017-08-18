@@ -17,7 +17,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         total: 0,
         dayOfTotal: 0,
         members: [{ key: 'M00001', name: '会员1' }, { key: 'M00002', name: '会员2' }, { key: 'M00003', name: '会员3' }],
-        incomeData: []
+        incomeData: [],
+        incomeData2: [],
     }
     var formModel = $scope.formModel = {
         currentDate: new Date()
@@ -53,6 +54,29 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var total = $scope.query.total(vars.currentMember.key);
 
         var rows = [recommend, inPoint, dividends, guide, repeat].concat(total);
+
+        var nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
+            return item.nodeKey === vars.currentMember.key;
+        });
+
+        var inPointTotal = 0, recommendTotal = 0;
+        angular.forEach(nodeInComeList, function (item) {
+            if (item.type === 'InPoint') {
+                inPointTotal += item.amount
+            }
+            if (item.type === 'Recommend') {
+                recommendTotal += item.amount
+            }
+        })
+
+        rows.push({
+            name: '直推奖2',
+            amount: recommendTotal
+        });
+        rows.push({
+            name: '见点奖2',
+            amount: inPointTotal
+        });
 
         model.maxIncome = maxIncome;
         model.incomeData = rows;
@@ -183,6 +207,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             //直推奖：给直接上级贡献 20%
             vars.incomeList.push({
+                nodeKey: parent.key,
                 type: 'Recommend',
                 name: '直推奖',
                 amount: selfAmount * 0.2,
@@ -199,18 +224,19 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 if (rateVal) {
                     var parentNodePaiedAmount = $scope.query.nodeOutlay(relationItem.parentNodeKey);
                     var endlessAmount = Math.min(selfAmount, parentNodePaiedAmount);
-                    inPointTotal += Math.round(endlessAmount * rateVal)
+
+                    //见点奖
+                    vars.incomeList.push({
+                        nodeKey: relationItem.parentNodeKey,
+                        type: 'InPoint',
+                        name: '见点奖',
+                        amount: Math.round(endlessAmount * rateVal),
+                        from: member.key,
+                        inDate: dataString
+                    });
                 }
             });
 
-            //见点奖
-            vars.incomeList.push({
-                type: 'InPoint',
-                name: '见点奖',
-                amount: inPointTotal,
-                from: member.key,
-                inDate: dataString
-            });
         }
     }
 
