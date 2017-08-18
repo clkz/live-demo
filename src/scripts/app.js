@@ -53,30 +53,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var repeat = $scope.query.repeat(vars.currentMember.key);
         var total = $scope.query.total(vars.currentMember.key);
 
+
+
         var rows = [recommend, inPoint, dividends, guide, repeat].concat(total);
 
-        var nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
-            return item.nodeKey === vars.currentMember.key;
-        });
 
-        var inPointTotal = 0, recommendTotal = 0;
-        angular.forEach(nodeInComeList, function (item) {
-            if (item.type === 'InPoint') {
-                inPointTotal += item.amount
-            }
-            if (item.type === 'Recommend') {
-                recommendTotal += item.amount
-            }
-        })
-
-        rows.push({
-            name: '直推奖2',
-            amount: recommendTotal
-        });
-        rows.push({
-            name: '见点奖2',
-            amount: inPointTotal
-        });
 
         model.maxIncome = maxIncome;
         model.incomeData = rows;
@@ -332,63 +313,99 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             return total;
         },
         //直推
-        recommend: function (memberKey) {
-            var total = 0;
-            var childOutlays = this.childOutlays(memberKey);
+        recommend: function (memberKey, inDate) {
+            // var total = 0;
+            // var childOutlays = this.childOutlays(memberKey);
 
-            for (var i = 0, ii = childOutlays.length; i < ii; i++) {
-                total += (childOutlays[i].amount * 0.2);//20%
+            // for (var i = 0, ii = childOutlays.length; i < ii; i++) {
+            //     total += (childOutlays[i].amount * 0.2);//20%
+            // }
+
+            // return {
+            //     type: 'Recommend',
+            //     name: '直推奖',
+            //     freezed: false,
+            //     amount: total
+            // }
+
+            var nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
+                return item.nodeKey === vars.currentMember.key && item.type === 'Recommend';
+            });
+
+            if (!!inDate) {
+                nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
+                    return item.inDate === inDate;
+                });
             }
+
+            var total = 0;
+            angular.forEach(nodeInComeList, function (item) {
+                total += item.amount
+            })
 
             return {
                 type: 'Recommend',
                 name: '直推奖',
-                freezed: false,
                 amount: total
             }
         },
         //见点
-        inPoint: function (memberKey) {
-            var self = this;
-            var config = {
-                level1: {
-                    layers: [1, 3, 5, 7],
-                    rate: 0.02
-                },
-                level2: {
-                    layers: [9, 11, 13],
-                    rate: 0.03
-                },
-                level3: {
-                    layers: [15, 17, 19],
-                    rate: 0.04
-                },
-                getRate: function (level) {
-                    for (var key in config) {
-                        if (typeof config[key] !== 'function') {
-                            var levelItem = config[key];
-                            if (levelItem.layers && levelItem.layers.indexOf(level - 0) >= 0) {
-                                return levelItem.rate;
-                            }
-                        }
-                    }
-                }
-            }
-            var selfAmount = self.nodeOutlay(memberKey);
-            var total = 0,
-                releationList = $filter('filter')(vars.releationList, function (item) {
-                    return item.parentNodeKey === memberKey;
-                });
+        inPoint: function (memberKey, inDate) {
+            // var self = this;
+            // var config = {
+            //     level1: {
+            //         layers: [1, 3, 5, 7],
+            //         rate: 0.02
+            //     },
+            //     level2: {
+            //         layers: [9, 11, 13],
+            //         rate: 0.03
+            //     },
+            //     level3: {
+            //         layers: [15, 17, 19],
+            //         rate: 0.04
+            //     },
+            //     getRate: function (level) {
+            //         for (var key in config) {
+            //             if (typeof config[key] !== 'function') {
+            //                 var levelItem = config[key];
+            //                 if (levelItem.layers && levelItem.layers.indexOf(level - 0) >= 0) {
+            //                     return levelItem.rate;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+            // var selfAmount = self.nodeOutlay(memberKey);
+            // var total = 0,
+            //     releationList = $filter('filter')(vars.releationList, function (item) {
+            //         return item.parentNodeKey === memberKey;
+            //     });
 
-            angular.forEach(releationList, function (relationItem) {
-                var rateVal = config.getRate(relationItem.layerNumber);
-                var childOutlayAmount = self.nodeOutlay(relationItem.nodeKey);
-                var endlessAmount = Math.min(selfAmount, childOutlayAmount);
+            // angular.forEach(releationList, function (relationItem) {
+            //     var rateVal = config.getRate(relationItem.layerNumber);
+            //     var childOutlayAmount = self.nodeOutlay(relationItem.nodeKey);
+            //     var endlessAmount = Math.min(selfAmount, childOutlayAmount);
 
-                if (rateVal) {
-                    total += Math.round(endlessAmount * rateVal)
-                }
+            //     if (rateVal) {
+            //         total += Math.round(endlessAmount * rateVal)
+            //     }
+            // });
+
+            var nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
+                return item.nodeKey === vars.currentMember.key && item.type === 'InPoint';
             });
+
+            if (!!inDate) {
+                nodeInComeList = $filter('filter')(vars.incomeList, function (item) {
+                    return item.inDate === inDate;
+                });
+            }
+
+            var total = 0;
+            angular.forEach(nodeInComeList, function (item) {
+                total += item.amount
+            })
 
             return {
                 type: 'InPoint',
