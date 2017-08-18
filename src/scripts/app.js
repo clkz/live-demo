@@ -52,8 +52,9 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var repeat = $scope.query.repeat(vars.currentMember.key);
         var total = $scope.query.total(vars.currentMember.key);
 
-        var rows = [maxIncome, recommend, inPoint, dividends, guide, repeat].concat(total);
+        var rows = [recommend, inPoint, dividends, guide, repeat].concat(total);
 
+        model.maxIncome = maxIncome;
         model.incomeData = rows;
     }
 
@@ -91,7 +92,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 inDate: $filter('date')(formModel.currentDate, 'yyyy-MM-dd')
             });
             $scope.storage.total();
-
+            $scope.storage.saveIncome(vars.currentMember);
             vars.showOutlayModal = false;
         },
         findRecentNode: function (member) {
@@ -102,6 +103,32 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             for (var i = 0, ii = allChilds.length; i < ii; i++) {
                 var childNodes = $scope.query.directNodeList(allChilds[i].key);
                 if (childNodes.length < 3) return allChilds[i];
+            }
+        }
+    }
+
+
+    var inPointConfig = {
+        level1: {
+            layers: [1, 3, 5, 7],
+            rate: 0.02
+        },
+        level2: {
+            layers: [9, 11, 13],
+            rate: 0.03
+        },
+        level3: {
+            layers: [15, 17, 19],
+            rate: 0.04
+        }
+    };
+
+
+    var getInPointRate = function (level) {
+        for (var key in inPointConfig) {
+            var levelItem = inPointConfig[key];
+            if (levelItem.layers && levelItem.layers.indexOf(level - 0) >= 0) {
+                return levelItem.rate;
             }
         }
     }
@@ -144,8 +171,46 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 })
             })
         },
-        saveIncome: function (newMembers) {
 
+        saveIncome: function (member) {
+            var dataString = $filter('date')(formModel.currentDate, 'yyyy-MM-dd'),
+                parent = $filter('filter')(model.members, function (item) {
+                    return item.key === member.parentKey;
+                })[0],
+                selfAmount = $scope.query.nodeOutlay(member.key),
+                parentPaiedAmount = parent && $scope.query.nodeOutlay(parent.key) || 0;
+            if (!parent) return;
+
+            //直推奖：给直接上级贡献 20%
+            vars.incomeList.push({
+                type: 'Recommend',
+                name: '直推奖',
+                amount: selfAmount * 0.2,
+                from: member.key,
+                inDate: dataString
+            });
+
+            var inPointTotal = 0, releationList = $filter('filter')(vars.releationList, function (item) {
+                return item.nodeKey === member.key;
+            });
+
+            angular.forEach(releationList, function (relationItem) {
+                var rateVal = getInPointRate(relationItem.layerNumber);
+                if (rateVal) {
+                    var parentNodePaiedAmount = $scope.query.nodeOutlay(relationItem.parentNodeKey);
+                    var endlessAmount = Math.min(selfAmount, parentNodePaiedAmount);
+                    inPointTotal += Math.round(endlessAmount * rateVal)
+                }
+            });
+
+            //见点奖
+            vars.incomeList.push({
+                type: 'InPoint',
+                name: '见点奖',
+                amount: inPointTotal,
+                from: member.key,
+                inDate: dataString
+            });
         }
     }
 
@@ -234,12 +299,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                 total += item.amount;
             });
 
-            return {
-                type: 'MaxIncome',
-                name: '收益上限',
-                freezed: false,
-                amount: total
+            if (total > selfAmount * 5) {
+                total = selfAmount * 5;
             }
+
+            return total;
         },
         //直推
         recommend: function (memberKey) {
@@ -375,7 +439,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             var guideVal = this.guide(memberKey).amount;
             var repeatVal = this.repeat(memberKey).amount;
 
-            var maxIncomeVal = this.maxIncome(memberKey).amount;
+            var maxIncomeVal = this.maxIncome(memberKey);
 
             var totalVal = recommendVal + inPointVal + inPointVal + guideVal + repeatVal;
 
