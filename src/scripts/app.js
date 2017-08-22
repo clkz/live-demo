@@ -253,12 +253,16 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         },
         saveDividendsIncome: function () {
             var dateString = $filter('date')(formModel.currentDate, 'yyyy-MM-dd');
-            //当天没有收益的所有会员
+            //当天收益小于其投资额5%的所有会员
             var allNoIncomeMembers = $filter('filter')(model.members, function (item) {
-                var incomeList = $filter('filter')(vars.incomeList, function (item1) {
+                var incomeTotal = 0, incomeList = $filter('filter')(vars.incomeList, function (item1) {
                     return item1.nodeKey === item.key && item1.inDate === dateString;
+                }), outlayTotal = $scope.query.nodeIncome(item.key);
+
+                angular.forEach(incomeList, function (item2) {
+                    incomeTotal += item2.amount;
                 });
-                return !incomeList.length
+                return incomeTotal < outlayTotal * 0.05;
             });
             var perDividendsOfMembers = Math.round((model.dayOfTotal * 0.2) / allNoIncomeMembers.length);
 
