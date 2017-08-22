@@ -163,6 +163,9 @@
                 <label>{{incomeItem.name}}:{{incomeItem.amount|number}}</label>
                 <span ng-if="!!incomeItem.freezed">（冻结）</span>
             </div>
+            <div style="color:#f09;font-size:12px;">
+                收益固定扣除项：手续费：6%，重复消费：6%，公益基金：5%，税收：3%
+            </div>
             <div class="modal-footer">
                 <button class="btn-small" ng-click="modal.close('showIncomeModal')">关闭</button>
             </div>

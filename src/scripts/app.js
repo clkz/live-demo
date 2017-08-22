@@ -616,11 +616,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     type: 'Lock',
                     name: '重消积分（重复消费：6%）',
                     freezed: false,
-                    amount: enabledVal - Math.round(enabledVal * 0.06)
+                    amount: Math.round(enabledVal * 0.06)
                 },
                 {
                     type: 'Enabled',
-                    name: '可用资金(已扣除：手续费：6%，重复消费：6%，公益基金：5%，税收：3%)',
+                    name: '可用资金',
                     freezed: false,
                     amount: enabledVal - Math.round(enabledVal * 0.2)
                 }
