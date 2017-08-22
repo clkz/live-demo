@@ -69,6 +69,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         var rows = [recommend, inPoint, dividends, guide, repeat].concat(total);
 
         model.maxIncome = maxIncome;
+        model.balanceMaxIncome = maxIncome - total[0].amount;
+
         model.incomeData = rows;
     }
 
@@ -385,30 +387,23 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             var selfAmount = this.nodeOutlay(memberKey);
             var outLaiedChilds = this.paiedMembers(memberKey);
             var childOutlays = this.childOutlays(memberKey);
-            var total = 0;
-
-            if (!outLaiedChilds.length) {
-                total += selfAmount * 2;
-            }
-            else if (outLaiedChilds.length === 1) {
-                total += selfAmount * 3;
-            }
-            else if (outLaiedChilds.length === 2) {
-                total += selfAmount * 4;
-            }
-            else if (outLaiedChilds.length > 2) {
-                total += selfAmount * 5;
-            }
+            var childOutlayTotal = 0, maxSelfAmount = selfAmount * 2;
 
             angular.forEach(childOutlays, function (item) {
-                total += item.amount;
+                childOutlayTotal += item.amount;
             });
 
-            if (total > selfAmount * 5) {
-                total = selfAmount * 5;
+            if (outLaiedChilds.length === 1) {
+                maxSelfAmount = selfAmount * 3;
+            }
+            else if (outLaiedChilds.length === 2) {
+                maxSelfAmount = selfAmount * 4;
+            }
+            else if (outLaiedChilds.length > 2) {
+                maxSelfAmount = selfAmount * 5;
             }
 
-            return total;
+            return Math.min(selfAmount * 2 + childOutlayTotal, maxSelfAmount);
         },
         //直推
         recommend: function (memberKey, inDate) {
