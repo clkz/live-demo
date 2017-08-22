@@ -132,7 +132,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             vars.showOutlayModal = false;
         },
         findRecentNode: function (member) {
-            var directNodeList = $scope.query.directNodeList(member.key);
+            var directNodeList = $scope.query.nodeOfChilds(member.key);
             if (directNodeList.length < 3) return member;
 
             var allChilds = $scope.query.findChilds(member.key);
