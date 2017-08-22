@@ -282,7 +282,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             var dateString = $filter('date')(formModel.currentDate, 'yyyy-MM-dd');
 
             var selfOutlayAmount = $scope.query.nodeOutlay(memberKey);
-            var selfIncomeAmount = $scope.query.nodeIncome(memberKey, dateString);
+            var selfIncomeAmount = $scope.query.inPoint(memberKey, dateString).amount
+                + $scope.query.recommend(memberKey, dateString).amount;
             var selfItem = $filter('filter')(model.members, function (item) {
                 return item.key === memberKey
             })[0];
