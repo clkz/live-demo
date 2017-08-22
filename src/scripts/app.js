@@ -595,7 +595,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             var maxIncomeVal = this.maxIncome(memberKey);
 
-            var totalVal = recommendVal + inPointVal + inPointVal + guideVal + repeatVal;
+            var totalVal = recommendVal + inPointVal + dividendsVal + guideVal + repeatVal;
 
             var enabledVal = totalVal > maxIncomeVal ? maxIncomeVal : totalVal;
 
@@ -613,10 +613,16 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
                     amount: totalVal > maxIncomeVal ? totalVal - maxIncomeVal : 0
                 },
                 {
-                    type: 'Enabled',
-                    name: '可用资金(手续费：6%)',
+                    type: 'Lock',
+                    name: '重消积分（重复消费：6%）',
                     freezed: false,
                     amount: enabledVal - Math.round(enabledVal * 0.06)
+                },
+                {
+                    type: 'Enabled',
+                    name: '可用资金(已扣除：手续费：6%，重复消费：6%，公益基金：5%，税收：3%)',
+                    freezed: false,
+                    amount: enabledVal - Math.round(enabledVal * 0.2)
                 }
             ];
         },
