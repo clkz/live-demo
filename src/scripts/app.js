@@ -137,7 +137,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             var allChilds = $scope.query.findChilds(member.key);
             for (var i = 0, ii = allChilds.length; i < ii; i++) {
-                var childNodes = $scope.query.directNodeList(allChilds[i].key);
+                var childNodes = $scope.query.nodeOfChilds(allChilds[i].key);
                 if (childNodes.length < 3) return allChilds[i];
             }
         }
@@ -318,6 +318,12 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
             return $filter('filter')(vars.releationList,
                 function (item) {
                     return item.parentNodeKey === memberKey && item.isDirect === true
+                });
+        },
+        nodeOfChilds: function (memberKey) {
+            return $filter('filter')(vars.releationList,
+                function (item) {
+                    return item.parentNodeKey === memberKey
                 });
         },
         nodeIncome: function (memberKey, inDate) {
