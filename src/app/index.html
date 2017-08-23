@@ -91,11 +91,14 @@
         <div><label>选择时间：<input type="date" ng-model="formModel.currentDate"></label></div>
         <hr/>
         <div>
+            <button class="btn-small" ng-click="settlementAllGuide()">结算互助奖</button>
+
             <button class="btn-small" ng-click="settlementDividends()">结算加权分红</button>
         </div>
         <div>
             <label>公司总收益：{{model.total|currency:'￥'}}</label>
-            <label>，当天收益：{{model.dayOfTotal|currency:'￥'}}</label>
+            <label>,当天收益：{{model.dayOfTotal|currency:'￥'}}</label>
+            <label>,全球分红：{{(model.dayOfTotal*0.2)}},资金池：{{model.lockedDividendsAmount}}</label>
             <table>
                 <thead>
                     <tr>

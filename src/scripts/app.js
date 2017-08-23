@@ -8,7 +8,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         currentMember: null,
         incomeList: [],
         releationList: [],
-        outlayList: []
+        outlayList: [],
+        dividendsList: []
     };
 
 
@@ -16,7 +17,8 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         performance: 0,
         total: 0,
         dayOfTotal: 0,
-        members: [{ key: 'M00001', name: '会员1' }, { key: 'M00002', name: '会员2' }, { key: 'M00003', name: '会员3' }],
+        lockedDividendsAmount: 0,
+        members: [{ key: 'M00001', name: '会员1' }],//, { key: 'M00002', name: '会员2' }, { key: 'M00003', name: '会员3' }
         incomeData: [],
         incomeData2: [],
     }
@@ -47,6 +49,11 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
     $scope.settlementDividends = function () {
         $scope.storage.saveDividendsIncome();
     }
+
+    $scope.settlementAllGuide = function () {
+        $scope.storage.saveGuideIncome();
+    }
+
 
     $scope.settlementGuide = function () {
         //TODO:定时循环结算指导奖
@@ -170,6 +177,14 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         }
     }
 
+    var getDividendsRate = function () {
+        var v = 1;
+        if (!!vars.dividendsList.length) {
+            v = [1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9][(new Date()).getDay()];
+        }
+        return Math.round(v / 100 * 100) / 100;
+    }
+
     $scope.storage = {
         total: function () {
             var total = 0,
@@ -253,89 +268,169 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
         },
         saveDividendsIncome: function () {
             var dateString = $filter('date')(formModel.currentDate, 'yyyy-MM-dd');
-            //当天收益小于其投资额5%的所有会员
+            //当天收益小于其投资额5%并且总收益未达到其投资额2倍的所有会员
             var allNoIncomeMembers = $filter('filter')(model.members, function (item) {
-                var incomeTotal = 0, incomeList = $filter('filter')(vars.incomeList, function (item1) {
-                    return item1.nodeKey === item.key && item1.inDate === dateString;
-                }), outlayTotal = $scope.query.nodeIncome(item.key);
+                var incomeTotal = $scope.query.nodeIncome(item.key),
+                    incomeDayOfTotal = $scope.query.nodeIncome(item.key, dateString),
+                    outlayTotal = $scope.query.nodeOutlay(item.key);
 
-                angular.forEach(incomeList, function (item2) {
-                    incomeTotal += item2.amount;
-                });
-                return incomeTotal < outlayTotal * 0.05;
+                return (!incomeDayOfTotal || incomeDayOfTotal < outlayTotal * 0.05) && incomeTotal <= outlayTotal * 2;
             });
             var perDividendsOfMembers = Math.round((model.dayOfTotal * 0.2) / allNoIncomeMembers.length);
-
+            if (!!model.lockedDividendsAmount) {
+                perDividendsOfMembers = model.lockedDividendsAmount / allNoIncomeMembers.length;
+            }
+            var dividendsRate = getDividendsRate();
+            var assignedTotal = 0;
             angular.forEach(allNoIncomeMembers, function (item) {
                 var memberOutlay = $scope.query.nodeOutlay(item.key);
-                var memberMaxDividends = Math.round(memberOutlay * 0.01 * 100) / 100;
-
-                vars.incomeList.push(
-                    {
-                        nodeKey: item.key,
-                        type: 'Dividends',
-                        name: '加权分红',
-                        amount: Math.min(perDividendsOfMembers, memberMaxDividends),
-                        from: '公司福利',
-                        inDate: dateString
-                    }
-                )
+                var memberMaxDividends = Math.round(memberOutlay * dividendsRate * 100) / 100;
+                var enabledVal = Math.min(perDividendsOfMembers, memberMaxDividends);
+                assignedTotal += enabledVal;
+                vars.incomeList.push({
+                    nodeKey: item.key,
+                    type: 'Dividends',
+                    name: '全球分红',
+                    amount: enabledVal,
+                    from: '公司福利',
+                    inDate: dateString
+                })
             });
+
+            model.lockedDividendsAmount += (model.dayOfTotal * 0.2) - assignedTotal;
+
+            vars.dividendsList.push({
+                amount: (model.dayOfTotal * 0.2) - assignedTotal,
+                type: 'banlance',
+                inDate: dateString,
+                culRate: dividendsRate
+            });
+
         },
-        saveGuideIncome: function (memberKey) {
+        saveGuideIncome: function () {
             var dateString = $filter('date')(formModel.currentDate, 'yyyy-MM-dd');
 
-            var selfOutlayAmount = $scope.query.nodeOutlay(memberKey);
-            var selfIncomeAmount = $scope.query.inPoint(memberKey, dateString).amount
-                + $scope.query.recommend(memberKey, dateString).amount;
-            var selfItem = $filter('filter')(model.members, function (item) {
-                return item.key === memberKey
-            })[0];
+            //当天收益小于其投资额5%的所有会员
+            var allNoIncomeMembers = $filter('filter')(model.members, function (item) {
+                var incomeDayOfTotal = $scope.query.nodeIncome(item.key, dateString),
+                    outlayTotal = $scope.query.nodeOutlay(item.key);
 
-            var parentCalculateAmount = 0;
-            if (selfIncomeAmount <= selfOutlayAmount * 0.05) {
-                var parent = $filter('filter')(model.members, function (item) { return item.key === selfItem.parentKey })[0];
+                return !incomeDayOfTotal || incomeDayOfTotal < outlayTotal * 0.05;
+            });
+
+
+            var getHasIncomedParentByLevel = function (parentKey, maxLevel) {
+                var parentAmount = 0,
+                    parent = $filter('filter')(model.members, function (item) {
+                        return item.key === parentKey;
+                    })[0];
                 if (parent) {
-                    parentCalculateAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
-                    var counter = 5 - 1, parent = {};
-                    while (counter > 0 && !parentCalculateAmount) {
-                        if (parentCalculateAmount) {
-                            parent = $filter('filter')(model.members, function (item) { return item.key === parent.parentKey })[0];
-                            if (parent) {
-                                parentCalculateAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
-                            }
-                            else {
-                                break;
-                            }
+                    parentAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
+                    var counter = maxLevel - 1;
+                    while (counter > 0 && !parentAmount) {
+                        parent = $filter('filter')(model.members, function (item) { return item.key === parent.parentKey })[0];
+                        if (parent) {
+                            parentAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
                         }
                         counter--;
                     }
+                    return parent;
                 }
-                var enabledVal = parentCalculateAmount * 0.1;
-                var siblingChilds = $filter('filter')(model.members, function (item) {
-                    return item.parentKey === selfItem.parentKey;
-                });
+            }
+
+            angular.forEach(allNoIncomeMembers, function (item) {
+                var selfOutlayAmount = $scope.query.nodeOutlay(item.key);
+                var parent = getHasIncomedParentByLevel(item.parentKey, 5);
+                var siblingNodeChilds = $scope.query.findChilds(item.parentKey);
+                var parentCalcAmount = $scope.query.inPoint(parent.key).amount +
+                    $scope.query.recommend(parent.key).amount;
+
+                var enabledVal = parentCalcAmount * 0.1;
                 var siblingOutlayTotal = 0;
-                angular.forEach(siblingChilds, function (item) {
-                    var siblingIncomeAmount = $scope.query.nodeIncome(item.key, dateString);
-                    if (!siblingIncomeAmount) {
-                        siblingOutlayTotal += $scope.query.nodeOutlay(item.key)
+                var incomedList = [];
+                angular.forEach(siblingNodeChilds, function (item1) {
+                    var selfIncomeAmount = $scope.query.inPoint(item1.key, dateString).amount
+                        + $scope.query.recommend(item1.key, dateString).amount;
+
+                    if (!!selfIncomeAmount) {
+                        incomedList.push(item1.key);
+                    }
+
+                    if (!selfIncomeAmount && incomedList.indexOf(item1.parentKey) < 0) {
+                        siblingOutlayTotal += $scope.query.nodeOutlay(item1.key)
                     }
                 });
+
                 var resultVal = 0;
                 if (siblingOutlayTotal) {
                     resultVal = Math.round((enabledVal / siblingOutlayTotal) * selfOutlayAmount * 100) / 100;
                 }
 
                 vars.incomeList.push({
-                    nodeKey: memberKey,
+                    nodeKey: item.key,
                     type: 'Guide',
-                    name: '辅导奖（互助金）',
+                    name: '辅导奖（互助奖）',
                     amount: resultVal,
                     from: parent.key,
                     inDate: dateString
                 });
-            }
+            });
+
+
+
+            // var selfOutlayAmount = $scope.query.nodeOutlay(memberKey);
+            // var selfIncomeAmount = $scope.query.inPoint(memberKey, dateString).amount
+            //     + $scope.query.recommend(memberKey, dateString).amount;
+            // var selfItem = $filter('filter')(model.members, function (item) {
+            //     return item.key === memberKey
+            // })[0];
+
+            // var parentCalculateAmount = 0;
+            // if (selfIncomeAmount <= selfOutlayAmount * 0.05) {
+            //     var parent = $filter('filter')(model.members, function (item) { return item.key === selfItem.parentKey })[0];
+            //     if (parent) {
+            //         parentCalculateAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
+            //         var counter = 5 - 1, parent = {};
+            //         while (counter > 0 && !parentCalculateAmount) {
+            //             if (parentCalculateAmount) {
+            //                 parent = $filter('filter')(model.members, function (item) { return item.key === parent.parentKey })[0];
+            //                 if (parent) {
+            //                     parentCalculateAmount = $scope.query.inPoint(parent.key).amount + $scope.query.recommend(parent.key).amount;
+            //                 }
+            //                 else {
+            //                     break;
+            //                 }
+            //             }
+            //             counter--;
+            //         }
+            //     }
+            //     var enabledVal = parentCalculateAmount * 0.1;
+            //     var siblingChilds = $filter('filter')(model.members, function (item) {
+            //         return item.parentNodeKey === selfItem.parentKey;
+            //     });
+            //     var siblingOutlayTotal = 0;
+            //     angular.forEach(siblingChilds, function (item) {
+            //         var siblingIncomeAmount = $scope.query.inPoint(item.key, dateString).amount
+            //             + $scope.query.recommend(item.key, dateString).amount;
+
+            //         if (!siblingIncomeAmount) {
+            //             siblingOutlayTotal += $scope.query.nodeOutlay(item.key)
+            //         }
+            //     });
+            //     var resultVal = 0;
+            //     if (siblingOutlayTotal) {
+            //         resultVal = Math.round((enabledVal / siblingOutlayTotal) * selfOutlayAmount * 100) / 100;
+            //     }
+
+            //     vars.incomeList.push({
+            //         nodeKey: memberKey,
+            //         type: 'Guide',
+            //         name: '辅导奖（互助金）',
+            //         amount: resultVal,
+            //         from: parent.key,
+            //         inDate: dateString
+            //     });
+            // }
         }
     }
 
@@ -549,7 +644,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             return {
                 type: 'Dividends',
-                name: '加权分红',
+                name: '全球分红',
                 amount: total
             }
         },
