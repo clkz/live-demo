@@ -158,7 +158,7 @@
                 <button class="btn-small" ng-click="settlementGuide()">结算辅导奖</button>
             </div>
             <span>
-                收益额度：{{model.maxIncome|number}}，剩余：{{model.balanceMaxIncome|number}}
+                授信额度：{{model.maxIncome|number}}，剩余：{{model.balanceMaxIncome|number}}
             </span>
             <div ng-repeat="incomeItem in model.incomeData">
                 <label>{{incomeItem.name}}:{{incomeItem.amount|number}}</label>
