@@ -694,7 +694,7 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             return {
                 type: 'Guide',
-                name: '辅导奖（互助金）',
+                name: '辅导奖（互助奖）',
                 amount: total
             }
         },
@@ -719,32 +719,27 @@ app.controller('mainCtrl', ['$scope', '$filter', function ($scope, $filter) {
 
             var enabledVal = totalVal > maxIncomeVal ? maxIncomeVal : totalVal;
 
-            return [
-                {
-                    type: 'Total',
-                    name: '收益总额',
-                    freezed: false,
-                    amount: totalVal
-                },
-                {
-                    type: 'Lock',
-                    name: '冻结资金',
-                    freezed: false,
-                    amount: totalVal > maxIncomeVal ? totalVal - maxIncomeVal : 0
-                },
-                {
-                    type: 'Lock',
-                    name: '重消积分（重复消费：6%）',
-                    freezed: false,
-                    amount: Math.round(enabledVal * 0.06)
-                },
-                {
-                    type: 'Enabled',
-                    name: '可用资金',
-                    freezed: false,
-                    amount: enabledVal - Math.round(enabledVal * 0.2)
-                }
-            ];
+            return [{
+                type: 'Total',
+                name: '收益总额',
+                freezed: false,
+                amount: totalVal
+            }, {
+                type: 'Lock',
+                name: '冻结资金',
+                freezed: false,
+                amount: totalVal > maxIncomeVal ? totalVal - maxIncomeVal : 0
+            }, {
+                type: 'Lock',
+                name: '重消积分（重复消费：6%）',
+                freezed: false,
+                amount: Math.round(enabledVal * 0.06)
+            }, {
+                type: 'Enabled',
+                name: '可用资金',
+                freezed: false,
+                amount: enabledVal - Math.round(enabledVal * 0.2)
+            }];
         },
         findChilds: function (key, members) {
             if (!members) members = [];
